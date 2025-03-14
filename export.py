@@ -18,6 +18,18 @@ def export_shape_to_step(obj, fname):
     #Part.export([obj], _fname)
     shape.exportStep(str(fname))
 
+def fully_load_gui():
+    while not freecad.app.ActiveDocument:
+        FreeCADGui.updateGui()
+        time.sleep(0.1)
+
+    for _ in range(10):
+        FreeCADGui.updateGui()
+        time.sleep(0.1)
+    freecad.app.ActiveDocument.recompute()
+    FreeCADGui.updateGui()
+    w = FreeCADGui.getMainWindow()
+    w.repaint()
 
 def get_assembly_links(obj):
     '''
@@ -62,7 +74,7 @@ def make_part_from_assembly(assem):
     pass
 
 
-def export_object(obj, version="X.X.X", path=Path('./')):
+def export_object(obj, version="X.X.X", path=Path('./'), export_step=False):
     '''
     Export the object to the typical export type.
     FIXME add more types and a way to select
@@ -80,9 +92,13 @@ def export_object(obj, version="X.X.X", path=Path('./')):
     if obj.TypeId == "TechDraw::DrawPage":
         # Exporting PDF need the TechDrawGui so also needs the freecad GUI
         name = obj.FullName.replace("#", "_")
-        _fname = f"{obj.Label}_{name}_{version}.pdf"
-        log_.info("Export %s", _fname)
-        TechDrawGui.exportPageAsPdf(obj, str(path / _fname))
+        _base_name = f"{obj.Label}_{name}_Drawing_{version}.pdf"
+        _fname = str(path / _base_name)
+        log_.info("Export Drawing %s", _fname)
+
+        fully_load_gui()
+        TechDrawGui.exportPageAsPdf(obj, _fname)
+
 
     elif obj.TypeId == "Assembly::AssemblyObject":
         # Turn the assembly into a part
@@ -100,9 +116,11 @@ def export_object(obj, version="X.X.X", path=Path('./')):
         # export_object(part, version=version, path=path)
 
     elif obj.TypeId in ["App::Link", "Assembly::AssemblyLink"]:
-        link = obj
-        obj_ = link.LinkedObject
-        export_object(obj_, version=version, path=path)
+        # link = obj
+        # obj_ = link.LinkedObject
+        # export_object(obj_, version=version, path=path)
+        log_.warning("Object skipped %s: %s, %s", obj.FullName, obj.TypeId, str(obj))
+
 
     elif obj.TypeId in ["PartDesign::Body"]:
         name = obj.FullName.replace("#", "_")
@@ -206,8 +224,10 @@ def cli_export(version, pdfs, steps, path, files):
 
     path = Path(path).absolute()
 
-    linked_files = get_all_file_assembly_links(files)
-    all_files = set(list(files) + list(linked_files))
+    # linked_files = get_all_file_assembly_links(files)
+    # close_all_files(files)
+
+    all_files = set(list(files)) # + list(linked_files))
     all_files = set([Path(pt).resolve().absolute() for pt in all_files])
     stems = [pt.stem for pt in all_files]
     duplicates = set([pt for pt in stems if stems.count(pt) > 1])
@@ -216,10 +236,6 @@ def cli_export(version, pdfs, steps, path, files):
         log_.error("Duplicated file stems %s, \n%s", str(duplicates), str(all_files))
 
     else:
-        for file in all_files:
-            path_ = path / file.stem
-            os.mkdir(path_)
-
         import FreeCADGui
         FreeCADGui.showMainWindow()
         global TechDrawGui
@@ -228,7 +244,9 @@ def cli_export(version, pdfs, steps, path, files):
 
         for file in all_files:
             path_ = path / file.stem
-            export_file(file, version=version, path=path_)
+            if not path_.exists():
+                os.mkdir(path_)
+                export_file(file, version=version, path=path_)
         log_.info("Finished all files")
 
     close_all_files(files)
