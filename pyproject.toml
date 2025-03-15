@@ -1,0 +1,53 @@
+[project]
+name = "freecad_export"
+version = "0.1.0"
+description='FreeCAD file exporter'
+authors = [
+    {name = "Simon Hobbs", email = "simon.hobbs@electrooptical.net"},
+]
+license = {file="LICENSE"}
+readme = "README.md"
+
+requires-python = ">=3.9"
+keywords = []
+classifiers = [
+    "Programming Language :: Python :: 3",
+]
+
+dependencies = [
+    "click>=8.0.0",
+]
+
+[project.urls]
+repository='https://github.com/snhobbs/freecad-make'
+url='https://github.com/snhobbs/freecad-make'
+
+[project.scripts]
+ freecad_export= "freecad_export.cli:main"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src", "src/freecad_export"]
+
+[build-system]
+requires = [
+    "setuptools>=60",
+    "setuptools-scm>=8.0"
+]
+
+[tool.pylint]
+max-line-length = 200
+disable = [
+    "C0103", # (invalid-name)
+    "C0114", # (missing-module-docstring)
+    "C0115", # (missing-class-docstring)
+    "C0116", # (missing-function-docstring)
+    "R0903", # (too-few-public-methods)
+    "R0913", # (too-many-arguments)
+    "W0105", # (pointless-string-statement)
+    "C0301",
+    "W1203",
+    "C0209"
+]
