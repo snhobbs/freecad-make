@@ -197,6 +197,18 @@ def export_all_assembly_objects(obj, *args, **kwargs):
         export_object(obj_, *args, **kwargs)
 
 
+def setup_page_template(page, arguments: dict, template=None):
+    '''
+    Take a page object, load in the Template, set the field values
+    '''
+    # page.Template.setEditFieldContent("AUTHOR_NAME", "Johnny B")
+    if template:
+        page.Template.Template = str(template)
+
+    for key, value in arguments.items():
+        page.Template.setEditFieldContent(key, value)
+
+
 def export_object_from_file(fname, obj_name, output):
     f = freecad.app.open(str(fname))
     obj = f.getObjectsByLabel(obj_name)[0]
