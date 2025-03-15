@@ -19,6 +19,12 @@ I recommend using Anaconda with the correct python version as your interpretor a
 
 Remember to set the PYTHONPATH and PATH_TO_FREECAD_LIBDIR otherwise it's not going to work!
 
+### Installing
+After setting up Anaconda and following the FreeCAD setup above you can just cd to this repo and run:
+```python
+pip install .
+```
+
 ## Functions
 ### `check-links`
 Checks that all linked objects in an assembly reference files are included in the build. This ensures assemblies are self-contained and correctly linked.
