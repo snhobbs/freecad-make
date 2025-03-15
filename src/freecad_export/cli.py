@@ -3,7 +3,6 @@ import click
 import logging
 import os
 from pathlib import Path
-import freecad
 from . import export
 
 log_ = None
@@ -47,7 +46,7 @@ def cli_check_assembly_links(files):
 @click.option("--pdf-only", "pdfs", is_flag=True)
 @click.option("--single-file", is_flag=True)
 @click.option("--single-directory", is_flag=True)
-@click.option("--path", "path", required=False)
+@click.option("--path", "path", type=str, required=False)
 @click.argument("files", nargs=-1, required=True)
 @gr1.command("export")
 def cli_export(version, pdfs, single_file, single_directory, path, files):
@@ -91,11 +90,8 @@ def cli_export_object(fname, obj_name, version, path):
         path = Path(os.getcwd())
     path = Path(path).resolve().absolute()
     export.setup_gui_import()
-    f = freecad.app.open(str(fname))
-    obj = f.getObject(obj_name)
-    export.export_object(obj, output=path)
+    export.export_object_from_file(fname, obj_name, output=path)
     export.close_all_files([fname])
-
 
 
 def main():

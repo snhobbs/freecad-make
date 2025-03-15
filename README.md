@@ -1,6 +1,6 @@
 # FreeCAD-Make
 
-Build function for FreeCAD projects. This is focused on making it easy to issue Releases from FreeCAD Assemblies and a collection of FreeCAD files.
+Build function for FreeCAD projects. This is focused on making it easy to issue Releases from FreeCAD Assemblies and a collection of FreeCAD files. This is similar in spirit to my kicad-make project [here](www.github.com/snhobbs/kicad-make).
 
 ## Functions
 ### check-links

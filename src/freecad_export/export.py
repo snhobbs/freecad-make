@@ -95,6 +95,28 @@ def make_file_name_base(obj, version):
     return output_
 
 
+def export_shape(obj, output):
+    def object_is_exportable(obj_):
+        if not hasattr(obj_, "Shape"):
+            return 0
+        if obj_.TypeId in ["App::Plane", "App::Line", "App::Origin", "Sketcher::SketchObject"]:
+            return 0
+        if obj_.Shape.Area == 0:
+            return 0
+        return 1
+
+    if not hasattr(obj, "Shape"):
+        return 1
+
+    shape = obj.Shape
+    if not object_is_exportable(obj):
+        log_.warning("Object skipped %s: %s, %s", obj.FullName, obj.TypeId, str(obj))
+    else:
+        log_.debug("Exporting %s: %s, %s", obj.Label, obj.TypeId, str(obj))
+        export_shape_to_step(obj, str(output.with_suffix(".step")))
+    return 0
+
+
 def export_object(obj, version="X.X.X", path=Path('./'), output=None):
     '''
     Export the object to the typical export type.
@@ -148,26 +170,12 @@ def export_object(obj, version="X.X.X", path=Path('./'), output=None):
 
     elif obj.TypeId in ["Sketcher::SketchObject"]:
         log_.warning("Sketch Export not implimented")
+        return 1
 
-
-    elif hasattr(obj, "Shape"):
-        shape = obj.Shape
-        def object_is_exportable(obj_):
-            if not hasattr(obj, "Shape"):
-                return 0
-            if obj_.TypeId in ["App::Plane", "App::Line", "App::Origin", "Sketcher::SketchObject"]:
-                return 0
-            if obj.Shape.Area == 0:
-                return 0
-            return 1
-
-        if not object_is_exportable(obj):
-            log_.warning("Object skipped %s: %s, %s", obj.FullName, obj.TypeId, str(obj))
-        else:
-            log_.debug("Exporting %s: %s, %s", obj.Label, obj.TypeId, str(obj))
-            export_shape_to_step(obj, str(output_.with_suffix(".step")))
     else:
         log_.warning("Object skipped %s: %s, %s", obj.FullName, obj.TypeId, str(obj))
+        return 1
+    return 0
 
 
 def export_all_assembly_objects(obj, *args, **kwargs):
@@ -184,6 +192,12 @@ def export_all_assembly_objects(obj, *args, **kwargs):
     for obj_ in [assem.getSubObjectList(pt)[-1] for pt in assem.getSubObjects()]:
         export_all_assembly_objects(obj_, *args, **kwargs)
         export_object(obj_, *args, **kwargs)
+
+
+def export_object_from_file(fname, obj_name, output):
+    f = freecad.app.open(str(fname))
+    obj = f.getObject(obj_name)
+    export.export_object(obj, output=output)
 
 
 def export_object_link(obj, *args, **kwargs):
@@ -205,8 +219,8 @@ def export_file_object(fname, name, output):
     f = freecad.app.open(str(fname))
     fully_load_gui()
     obj = f.getObject(name)
-    export_object(obj, output=output)
-
+    if export_object(obj, output=output):
+        export_shape(obj, output=output)
 
 
 def export_file_pdfs(fname, version, path):
