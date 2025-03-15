@@ -22,3 +22,9 @@ Use --pdf-only to skip the step files and only export the TechDraw pages as PDFs
 + Crawl Assembly link trees to ensure the links are within known files
 + Export all the related components of a project with consistant naming and organization.
 
+
+## Project Organization
+The crawling functions are most useful for archiving and checking.
+Normal operation is to have one file for each object that is being designed.
+Each file should include a drawing, different names for the drawings should be added to each one.
+A generic rule can be added for each type of drawing simplifying writing makefiles.

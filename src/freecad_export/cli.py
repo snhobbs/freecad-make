@@ -30,6 +30,7 @@ def gr1(debug):
 @click.argument("files", nargs=-1, required=True)
 @gr1.command("check-links")
 def cli_check_assembly_links(files):
+    files = [Path(pt).resolve().absolute() for pt in files]
     all_files = expand_linked_files(files)
 
     set_diff = set(all_files).difference(set(files))
