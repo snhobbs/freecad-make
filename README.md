@@ -10,6 +10,14 @@ Build function for FreeCAD projects, designed to automate the process of exporti
 + Export STEP files for assemblies, parts, bodies, and features (any solid object).
 + Selectively export a specific page or object within a project for use in Makefiles.
 
+## Notes On Setting Up Your Python Environment
+FreeCAD scripting is designed to be done inside FreeCAD. Scripting it from outside that environment needs a bit of setup.
+
+I have a basic list of instructions for using the python bindings that ship with the appimages: [here](https://www.maskset.net/blog/2023/03/22/scripting-freecad-from-an-appimage/).
+
+I recommend using Anaconda with the correct python version as your interpretor and setting up a freecad virtual environment.
+
+Remember to set the PYTHONPATH and PATH_TO_FREECAD_LIBDIR otherwise it's not going to work!
 
 ## Functions
 ### `check-links`
