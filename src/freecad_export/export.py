@@ -88,7 +88,14 @@ def make_part_from_assembly(assem):
     pass
 
 
-def export_object(obj, version="X.X.X", path=Path('./'), export_step=False):
+def make_file_name_base(obj, version):
+    name = obj.FullName.split("#")[0]
+    title = obj.TypeId.split(':')[-1]
+    output_ = f"{name}_{obj.Label}_{title}_{version}"
+    return output_
+
+
+def export_object(obj, version="X.X.X", path=Path('./'), output=None):
     '''
     Export the object to the typical export type.
     FIXME add more types and a way to select
@@ -103,29 +110,26 @@ def export_object(obj, version="X.X.X", path=Path('./'), export_step=False):
 
     log_.info("Export %s, %s", obj.FullName, str(obj))
 
+    if output is None:
+        output_ = path / make_file_name_base(obj, version=version)
+    else:
+        output_ = output
+
     if obj.TypeId == "TechDraw::DrawPage":
         fully_load_gui()
-        export_drawing(obj, version=version, path=path)
+        export_drawing(obj, output=output_.with_suffix(".pdf"))
 
-    elif obj.TypeId == "Assembly::AssemblyObject":
+    if obj.TypeId == "Assembly::AssemblyObject":
         # Turn the assembly into a part
-        #log_.info("Skipping %s, Not Implimented", str(obj))
         assem = obj
-        #for obj_ in [assem.getSubObjectList(pt)[-1] for pt in assem.getSubObjects()]:
-        #    export_object(obj_, version=version, path=path)
         # We are not exporting the assembly subsections. Those are checked
         # for the links being exported only
-
-        name = obj.FullName.split("#")[0]
-        _fname = f"{name}_{obj.Label}_Assembly_{version}.step"
-        ImportGui.export([obj], str(path / _fname))
+        ImportGui.export([obj], str(output_.with_suffix(".step")))
         part = make_part_from_assembly(assem)
         # export_object(part, version=version, path=path)
 
     elif obj.TypeId in ["PartDesign::Body"]:
-        name = obj.FullName.split("#")[0]
-        _fname = f"{name}_{obj.Label}_Body_{version}.step"
-        export_shape_to_step(obj, str(path / _fname))
+        export_shape_to_step(obj, str(output_.with_suffix(".step")))
 
     elif obj.TypeId in ["PartDesign::Part", "App::Part"]:
         '''
@@ -137,15 +141,12 @@ def export_object(obj, version="X.X.X", path=Path('./'), export_step=False):
         # FIXME add option to export Parts to .FCStd or not
         part = obj
         for obj_ in [part.getSubObjectList(pt)[-1] for pt in part.getSubObjects()]:
-            export_object(obj_, version=version, path=path)
+            export_object(obj_, output=output_)
 
         name = obj.FullName.split("#")[0]
-        _fname = f"{name}_{obj.Label}_Part_{version}.step"
-        ImportGui.export([obj], str(path / _fname))
+        ImportGui.export([obj], str(output_.with_suffix(".step")))
 
     elif obj.TypeId in ["Sketcher::SketchObject"]:
-        name = obj.FullName.split("#")[0]
-        _fname = f"{name}_{obj.Label}_Sketch_{version}"
         log_.warning("Sketch Export not implimented")
 
 
@@ -164,9 +165,7 @@ def export_object(obj, version="X.X.X", path=Path('./'), export_step=False):
             log_.warning("Object skipped %s: %s, %s", obj.FullName, obj.TypeId, str(obj))
         else:
             log_.debug("Exporting %s: %s, %s", obj.Label, obj.TypeId, str(obj))
-            name = obj.FullName.split("#")[0]
-            _fname = f"{name}_{obj.Label}_Shape_{version}.step"
-            export_shape_to_step(obj, str(path / _fname))
+            export_shape_to_step(obj, str(output_.with_suffix(".step")))
     else:
         log_.warning("Object skipped %s: %s, %s", obj.FullName, obj.TypeId, str(obj))
 
@@ -195,15 +194,19 @@ def export_object_link(obj, *args, **kwargs):
 
 
 def export_drawing(obj, *args, **kwargs):
-    version = kwargs["version"]
-    path = kwargs["path"]
+    output = str(Path(kwargs.get("output")).with_suffix(".pdf"))
     if obj.TypeId == "TechDraw::DrawPage":
         # Exporting PDF need the TechDrawGui so also needs the freecad GUI
-        name = obj.FullName.split("#")[0]
-        _base_name = f"{name}_{obj.Label}_Drawing_{version}.pdf"
-        _fname = str(path / _base_name)
-        log_.info("Export Drawing %s", _fname)
-        TechDrawGui.exportPageAsPdf(obj, _fname)
+        log_.info("Export Drawing %s", str(output))
+        TechDrawGui.exportPageAsPdf(obj, str(output))
+
+
+def export_file_object(fname, name, output):
+    f = freecad.app.open(str(fname))
+    fully_load_gui()
+    obj = f.getObject(name)
+    export_object(obj, output=output)
+
 
 
 def export_file_pdfs(fname, version, path):
@@ -211,7 +214,8 @@ def export_file_pdfs(fname, version, path):
     fully_load_gui()
     for obj in f.findObjects():
         if obj.TypeId == "TechDraw::DrawPage":
-            export_drawing(obj, version=version, path=path)
+            output = path / make_file_name_base(obj, version=version)
+            export_drawing(obj, output=output.with_suffix('.pdf'))
 
 
 def export_file(fname, *args, **kwargs):

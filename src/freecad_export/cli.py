@@ -3,6 +3,7 @@ import click
 import logging
 import os
 from pathlib import Path
+import freecad
 from . import export
 
 log_ = None
@@ -52,7 +53,7 @@ def cli_check_assembly_links(files):
 def cli_export(version, pdfs, single_file, single_directory, path, files):
     if path is None:
         path = Path(os.getcwd())
-    path_ = Path(path).resolve().absolute()
+    path = Path(path).resolve().absolute()
 
     all_files = [Path(pt) for pt in files]
     if not single_file:
@@ -70,7 +71,7 @@ def cli_export(version, pdfs, single_file, single_directory, path, files):
         path_ = path
         if not single_directory:
             path_ = path / file.stem
-        if not path_.exists():
+        if not path.exists():
             os.mkdir(path_)
         if pdfs:
             export.export_file_pdfs(file, version=version, path=path_)
@@ -78,6 +79,23 @@ def cli_export(version, pdfs, single_file, single_directory, path, files):
             export.export_file(file, version=version, path=path_)
     log_.info("Finished all files")
     export.close_all_files(files)
+
+
+@click.option("--fname", required=True)
+@click.option("--object", "-o", "obj_name", required=True)
+@click.option("--version", default="X.X.X")
+@click.option("--path", "path", required=False)
+@gr1.command("export-object", help="Export a specific named object in the named file")
+def cli_export_object(fname, obj_name, version, path):
+    if path is None:
+        path = Path(os.getcwd())
+    path = Path(path).resolve().absolute()
+    export.setup_gui_import()
+    f = freecad.app.open(str(fname))
+    obj = f.getObject(obj_name)
+    export.export_object(obj, output=path)
+    export.close_all_files([fname])
+
 
 
 def main():
