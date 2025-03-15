@@ -190,6 +190,9 @@ def export_all_assembly_objects(obj, *args, **kwargs):
     #log_.info("Skipping %s, Not Implimented", str(obj))
     assem = obj
     for obj_ in [assem.getSubObjectList(pt)[-1] for pt in assem.getSubObjects()]:
+        if obj_.TypeId in ["App::Link", "Assembly::AssemblyLink"]:
+            link = obj_
+            obj_ = link.LinkedObject
         export_all_assembly_objects(obj_, *args, **kwargs)
         export_object(obj_, *args, **kwargs)
 
@@ -239,6 +242,11 @@ def export_file(fname, *args, **kwargs):
     for obj in f.findObjects():
         export_object(obj, *args, **kwargs)
 
+def export_file_with_links(fname, *args, **kwargs):
+    f = freecad.app.open(str(fname))
+    log_.info("Export %s", str(fname))
+    for obj in f.findObjects():
+        export_all_assembly_objects(obj, *args, **kwargs)
 
 def close_all_files(files):
     for dname in freecad.app.listDocuments():

@@ -67,16 +67,18 @@ def cli_export(version, pdfs, single_file, single_directory, path, files):
         return
 
     export.setup_gui_import()
-    for file in all_files:
+    for fname in all_files:
         path_ = path
         if not single_directory:
-            path_ = path / file.stem
-        if not path.exists():
+            path_ = path / fname.stem
+        if not path_.exists():
             os.mkdir(path_)
         if pdfs:
-            export.export_file_pdfs(file, version=version, path=path_)
+            export.export_file_pdfs(fname, version=version, path=path_)
         else:
-            export.export_file(file, version=version, path=path_)
+            if single_file:
+                export.export_file_with_links(fname, version=version, path=path_)
+            export.export_file(fname, version=version, path=path_)
     log_.info("Finished all files")
     export.close_all_files(files)
 
