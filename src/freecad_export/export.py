@@ -196,8 +196,9 @@ def export_all_assembly_objects(obj, *args, **kwargs):
 
 def export_object_from_file(fname, obj_name, output):
     f = freecad.app.open(str(fname))
-    obj = f.getObject(obj_name)
-    export.export_object(obj, output=output)
+    obj = f.getObjectsByLabel(obj_name)[0]
+    # getObject
+    export_object(obj, output=output)
 
 
 def export_object_link(obj, *args, **kwargs):
