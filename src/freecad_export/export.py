@@ -4,6 +4,7 @@ import time
 import logging
 import os
 from pathlib import Path
+from PySide2.QtWidgets import QApplication
 
 log_ = logging.getLogger("FreeCAD_Export")
 TechDrawGui = None
@@ -32,16 +33,20 @@ def export_shape_to_step(obj, fname):
     #Part.export([obj], _fname)
     shape.exportStep(str(fname))
 
+
 def fully_load_gui():
     while not freecad.app.ActiveDocument:
         FreeCADGui.updateGui()
         time.sleep(0.1)
 
-    for _ in range(10):
-        FreeCADGui.updateGui()
-        time.sleep(0.1)
-    freecad.app.ActiveDocument.recompute()
     FreeCADGui.updateGui()
+    freecad.app.ActiveDocument.recompute()
+
+    for i in range(5):
+        time.sleep(0.01)
+        while QApplication.instance().hasPendingEvents():
+            FreeCADGui.updateGui()
+
     w = FreeCADGui.getMainWindow()
     w.repaint()
 
@@ -239,12 +244,14 @@ def export_file_object(fname, name, output):
         export_shape(obj, output=output)
 
 
-def export_file_pdfs(fname, version, path):
+def export_file_pdfs(fname, version, path, template, fields):
     f = freecad.app.open(str(fname))
     fully_load_gui()
     for obj in f.findObjects():
         if obj.TypeId == "TechDraw::DrawPage":
             output = path / make_file_name_base(obj, version=version)
+            if template and fields:
+                setup_page_template(obj, arguments=fields, template=template)
             export_drawing(obj, output=output.with_suffix('.pdf'))
 
 
