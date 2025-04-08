@@ -121,3 +121,9 @@ When deciding where to store drawings and details, a recommended method is to pl
 ## Further Upgrades
 + Make Part Object out of Assemblies. Strip all links and export a FreeCAD file that has all the objects enclosed.
 
+
+## Trouble Shooting
+### Seg Faults at Startup
++ Check the configuration files and macros. I had an old installation that caused the AppImage to just crash on startup. Removing config files at ${HOME}/.local/share/FreeCAD/fixed it. Call ```freecad --dump-config``` to find where your macros and config files are.
+
+###

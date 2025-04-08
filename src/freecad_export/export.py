@@ -42,13 +42,14 @@ def fully_load_gui():
     FreeCADGui.updateGui()
     freecad.app.ActiveDocument.recompute()
 
-    for i in range(5):
-        time.sleep(0.01)
+    for i in range(1000):
+        time.sleep(5e-3)
         while QApplication.instance().hasPendingEvents():
             FreeCADGui.updateGui()
 
     w = FreeCADGui.getMainWindow()
     w.repaint()
+    time.sleep(5)
 
 def get_assembly_links(obj):
     '''
