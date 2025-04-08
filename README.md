@@ -126,4 +126,5 @@ When deciding where to store drawings and details, a recommended method is to pl
 ### Seg Faults at Startup
 + Check the configuration files and macros. I had an old installation that caused the AppImage to just crash on startup. Removing config files at ${HOME}/.local/share/FreeCAD/fixed it. Call ```freecad --dump-config``` to find where your macros and config files are.
 
-###
+### Step File Export Seg Faults
++ Hidden parts in a model results in a seg fault for some reason. You'll need to remove those parts or unhide them. This is a known issue: https://github.com/FreeCAD/FreeCAD/issues/18056
