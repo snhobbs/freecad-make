@@ -1,9 +1,8 @@
-import freecad
-import Part
 import time
 import logging
-import os
 from pathlib import Path
+import freecad
+# import Part
 from PySide2.QtWidgets import QApplication
 
 log_ = logging.getLogger("FreeCAD_Export")
@@ -12,6 +11,14 @@ ImportGui = None
 FreeCADGui = None
 
 def setup_gui_import():
+    """
+    Load and initialize the FreeCAD GUI modules required for exporting operations.
+
+    This function imports and initializes the FreeCADGui, TechDrawGui, and ImportGui
+    modules, and ensures the FreeCAD main window is shown.
+
+    Imports are hidden as they take time to load and are not required for all operations.
+    """
     global FreeCADGui
     import FreeCADGui as FreeCADGui_
     FreeCADGui = FreeCADGui_
@@ -28,6 +35,13 @@ def setup_gui_import():
 
 
 def export_shape_to_step(obj, fname):
+    """
+    Export the shape of a FreeCAD object to a STEP file.
+
+    Parameters:
+        obj (FreeCAD object): The object whose shape will be exported.
+        fname (Path or str): The output STEP file path.
+    """
     log_.info("Exporting %s", str(fname))
     shape = obj.Shape
     #Part.export([obj], _fname)
@@ -35,6 +49,12 @@ def export_shape_to_step(obj, fname):
 
 
 def fully_load_gui():
+    """
+    Wait until the GUI is fully initialized and the active document is recomputed.
+
+    This function ensures that the GUI is loaded and all pending events are processed
+    before proceeding with further GUI-based operations like exporting PDFs.
+    """
     while not freecad.app.ActiveDocument:
         FreeCADGui.updateGui()
         time.sleep(0.1)
@@ -52,9 +72,15 @@ def fully_load_gui():
     time.sleep(5)
 
 def get_assembly_links(obj):
-    '''
-    Cycle through object and return all links to in a subassemblies
-    '''
+    """
+    Recursively gather all file links used in an assembly object.
+
+    Parameters:
+        obj (FreeCAD object): The object to inspect for linked subassemblies.
+
+    Returns:
+        list of str: List of file paths referenced by the assembly.
+    """
     log_.debug("get_assembly_links: %s", obj.FullName)
     links = []
     if obj.TypeId in ["App::Link", "Assembly::AssemblyLink"]:
@@ -74,10 +100,15 @@ def get_assembly_links(obj):
 
 
 def get_all_file_assembly_links(files):
-    '''
-    Pass all the files
-    Check that all the assembly links are in the passed files
-    '''
+    """
+    For a given list of FreeCAD files, gather all assembly file links used.
+
+    Parameters:
+        files (list of str or Path): Paths to FreeCAD files.
+
+    Returns:
+        set of Path: Set of all resolved file paths linked within the assemblies.
+    """
     links = []
     file_set = set([Path(pt).resolve().absolute() for pt in files])
     for fname in file_set:
@@ -88,13 +119,29 @@ def get_all_file_assembly_links(files):
 
 
 def make_part_from_assembly(assem):
-    '''
-    Create a part out of the assembly
-    '''
+    """
+    Convert an assembly object into a single part representation.
+
+    Parameters:
+        assem (FreeCAD object): The assembly object.
+
+    Returns:
+        Part object or None: The generated part object (Not yet implemented).
+    """
     pass
 
 
 def make_file_name_base(obj, version):
+    """
+    Generate a base filename for exported files based on object metadata.
+
+    Parameters:
+        obj (FreeCAD object): The object to be exported.
+        version (str): A version string to append to the filename.
+
+    Returns:
+        str: A sanitized and informative filename base.
+    """
     name = obj.FullName.split("#")[0]
     title = obj.TypeId.split(':')[-1]
     output_ = f"{name}_{obj.Label}_{title}_{version}"
@@ -102,6 +149,16 @@ def make_file_name_base(obj, version):
 
 
 def export_shape(obj, output):
+    """
+    Export a single object's shape as a STEP file, if it's valid.
+
+    Parameters:
+        obj (FreeCAD object): The object to export.
+        output (Path): Output file path base (extension added automatically).
+
+    Returns:
+        int: 0 if export was attempted, 1 if object was invalid or skipped.
+    """
     def object_is_exportable(obj_):
         if not hasattr(obj_, "Shape"):
             return 0
@@ -124,17 +181,27 @@ def export_shape(obj, output):
 
 
 def export_object(obj, version="X.X.X", path=Path('./'), output=None):
-    '''
-    Export the object to the typical export type.
+    """
+    Export a FreeCAD object to the appropriate output format based on its type.
+
     FIXME add more types and a way to select
     Assemblies become Parts
     Parts and Bodies become step files
     Pages become PDFs
     Top Level Sketches become SVGs, EPS, and DXF
-    '''
+
+    Parameters:
+        obj (FreeCAD object): The object to export.
+        version (str): A version identifier to use in filenames.
+        path (Path): Output directory.
+        output (Path, optional): Specific output path to use instead of auto-generating.
+
+    Returns:
+        int: 0 if export succeeded, 1 if skipped or failed.
+    """
     if obj is None:
         log_.error("export None object")
-        return
+        return 1
 
     log_.info("Export %s, %s", obj.FullName, str(obj))
 
@@ -185,15 +252,17 @@ def export_object(obj, version="X.X.X", path=Path('./'), output=None):
 
 
 def export_all_assembly_objects(obj, *args, **kwargs):
-    '''
-    Export a step file of every linked object in an assembly
-    '''
+    """
+    Recursively export all objects in an assembly, following links.
+
+    Parameters:
+        obj (FreeCAD object): Assembly object to process.
+        *args, **kwargs: Passed to export_object.
+    """
     expected_id = "Assembly::AssemblyObject"
     if obj.TypeId != expected_id:
         return
 
-    # Turn the assembly into a part
-    #log_.info("Skipping %s, Not Implimented", str(obj))
     assem = obj
     for obj_ in [assem.getSubObjectList(pt)[-1] for pt in assem.getSubObjects()]:
         if obj_.TypeId in ["App::Link", "Assembly::AssemblyLink"]:
@@ -204,10 +273,14 @@ def export_all_assembly_objects(obj, *args, **kwargs):
 
 
 def setup_page_template(page, arguments: dict, template=None):
-    '''
-    Take a page object, load in the Template, set the field values
-    '''
-    # page.Template.setEditFieldContent("AUTHOR_NAME", "Johnny B")
+    """
+    Apply a title block template and field data to a TechDraw page.
+
+    Parameters:
+        page (TechDraw::DrawPage): The drawing page object.
+        arguments (dict): Dictionary of field keys and values to apply.
+        template (Path, optional): Optional template file path to assign.
+    """
     if template:
         page.Template.Template = str(template)
 
@@ -216,13 +289,27 @@ def setup_page_template(page, arguments: dict, template=None):
 
 
 def export_object_from_file(fname, obj_name, output):
+    """
+    Open a file and export a named object to a specified output.
+
+    Parameters:
+        fname (str or Path): FreeCAD file path.
+        obj_name (str): Label of the object to export.
+        output (Path): Output file base path.
+    """
     f = freecad.app.open(str(fname))
     obj = f.getObjectsByLabel(obj_name)[0]
-    # getObject
     export_object(obj, output=output)
 
 
 def export_object_link(obj, *args, **kwargs):
+    """
+    Resolve and export a linked object from a Link or AssemblyLink.
+
+    Parameters:
+        obj (FreeCAD object): Link object pointing to the real object.
+        *args, **kwargs: Passed to export_object.
+    """
     if obj.TypeId in ["App::Link", "Assembly::AssemblyLink"]:
         link = obj
         obj_ = link.LinkedObject
@@ -230,14 +317,28 @@ def export_object_link(obj, *args, **kwargs):
 
 
 def export_drawing(obj, *args, **kwargs):
+    """
+    Export a TechDraw page object to PDF using the GUI.
+
+    Parameters:
+        obj (TechDraw::DrawPage): The drawing object to export.
+        output (Path): Output path for the PDF file.
+    """
     output = str(Path(kwargs.get("output")).with_suffix(".pdf"))
     if obj.TypeId == "TechDraw::DrawPage":
-        # Exporting PDF need the TechDrawGui so also needs the freecad GUI
         log_.info("Export Drawing %s", str(output))
         TechDrawGui.exportPageAsPdf(obj, str(output))
 
 
 def export_file_object(fname, name, output):
+    """
+    Open a file and export a specific named object, falling back to shape export if needed.
+
+    Parameters:
+        fname (str or Path): FreeCAD file path.
+        name (str): Name of the object within the file.
+        output (Path): Output file path.
+    """
     f = freecad.app.open(str(fname))
     fully_load_gui()
     obj = f.getObject(name)
@@ -246,6 +347,16 @@ def export_file_object(fname, name, output):
 
 
 def export_file_pdfs(fname, version, path, template, fields):
+    """
+    Export all TechDraw pages in a file as PDFs with template and metadata fields.
+
+    Parameters:
+        fname (str or Path): FreeCAD file path.
+        version (str): Version string to include in filenames.
+        path (Path): Output directory.
+        template (Path): Template to apply to each page.
+        fields (dict): Title block field values to set.
+    """
     f = freecad.app.open(str(fname))
     fully_load_gui()
     for obj in f.findObjects():
@@ -257,18 +368,40 @@ def export_file_pdfs(fname, version, path, template, fields):
 
 
 def export_file(fname, *args, **kwargs):
+    """
+    Export all exportable objects in a FreeCAD file.
+    Parts exported under the assembly
+
+    Parameters:
+        fname (str or Path): FreeCAD file path.
+        *args, **kwargs: Passed to export_object.
+    """
     f = freecad.app.open(str(fname))
     log_.info("Export %s", str(fname))
     for obj in f.findObjects():
         export_object(obj, *args, **kwargs)
 
 def export_file_with_links(fname, *args, **kwargs):
+    """
+    Export all linked objects in assemblies in a FreeCAD file.
+    Parts exported under the linked files
+
+    Parameters:
+        fname (str or Path): FreeCAD file path.
+        *args, **kwargs: Passed to export_object.
+    """
     f = freecad.app.open(str(fname))
     log_.info("Export %s", str(fname))
     for obj in f.findObjects():
         export_all_assembly_objects(obj, *args, **kwargs)
 
 def close_all_files(files):
+    """
+    Close all open FreeCAD documents, forcing closability if necessary.
+
+    Parameters:
+        files (list): Unused; maintained for interface compatibility.
+    """
     for dname in freecad.app.listDocuments():
         doc = freecad.app.getDocument(dname)
         if doc.isClosable():

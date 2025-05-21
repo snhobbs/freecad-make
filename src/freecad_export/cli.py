@@ -1,11 +1,11 @@
 import sys
-import click
 import logging
 import os
 from pathlib import Path
+import click
 from . import export
 
-log_ = None
+log_ = logging.getLogger("FreeCAD_Export")
 
 
 def expand_linked_files(files):
@@ -20,8 +20,6 @@ def expand_linked_files(files):
 @click.option("--debug", is_flag=True)
 def gr1(debug):
     logging.basicConfig()
-    global log_
-    log_ = logging.getLogger("FreeCAD_Export")
     log_.setLevel(logging.INFO)
     if debug:
         log_.setLevel(logging.DEBUG)
@@ -45,11 +43,11 @@ def cli_check_assembly_links(files):
 
 @click.option("--version", default="X.X.X")
 @click.option("--pdf-only", "pdfs", is_flag=True)
-@click.option("--single-file", is_flag=True)
-@click.option("--single-directory", is_flag=True)
+@click.option("--single-file", is_flag=True, help="Exports all the components used within a specific assembly.")
+@click.option("--single-directory", is_flag=True, help="Outputs all files into a single directory.")
 @click.option("--path", "path", type=str, required=False)
 @click.argument("files", nargs=-1, required=True)
-@gr1.command("export")
+@gr1.command("export", help="Export all objects associated with a given file.")
 def cli_export(version, pdfs, single_file, single_directory, path, files):
     if path is None:
         path = Path(os.getcwd())
